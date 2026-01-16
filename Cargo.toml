@@ -1,0 +1,9 @@
+[package]
+name = "opengl_blackhole"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+bytemuck = "1.24.0"
+gl = "0.14.0"
+sdl2 = { version = "0.38.0", features = ["bundled"] }
