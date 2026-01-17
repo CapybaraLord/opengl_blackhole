@@ -1,6 +1,9 @@
-use sdl2::{event::Event, keyboard::Scancode};
+use sdl2::{
+    event::{Event, WindowEvent},
+    keyboard::Scancode,
+};
 
-use crate::winsdl::Winsdl;
+use crate::{objects::Uniform, winsdl::Winsdl};
 
 pub mod objects;
 mod winsdl;
@@ -11,8 +14,12 @@ fn main() {
         gl::Viewport(0, 0, 800, 800);
     }
 
+    // Shader/Program stuff
     let mut program = objects::create_program().unwrap();
     program.set();
+    // Shader Uniform Locations
+    let u_resolution = Uniform::new(program.id(), "u_resolution").unwrap();
+    u_resolution.set_vec2f((800.0, 800.0));
 
     #[rustfmt::skip]
     let vertices = vec![
@@ -36,6 +43,13 @@ fn main() {
     'running: loop {
         for event in winsdl.event_pump.poll_iter() {
             match event {
+                Event::Window { win_event, .. } => match win_event {
+                    WindowEvent::Resized(width, height) => unsafe {
+                        gl::Viewport(0, 0, width, height);
+                        u_resolution.set_vec2f((width as f32, height as f32));
+                    },
+                    _ => (),
+                },
                 Event::KeyDown { scancode, .. } => {
                     if let Some(scancode) = scancode {
                         match scancode {

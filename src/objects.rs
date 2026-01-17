@@ -1,5 +1,8 @@
 use std::{
+    error::Error,
     ffi::{CStr, CString},
+    fmt::format,
+    mem::size_of_val,
     ptr::{null, null_mut},
 };
 
@@ -29,7 +32,10 @@ impl Shader {
 
             let error = create_whitespace_cstring_with_len(len as usize);
 
-            unsafe { gl::GetShaderInfoLog(id, len, null_mut(), error.as_ptr() as *mut GLchar) };
+            unsafe {
+                gl::GetShaderInfoLog(id, len, null_mut(), error.as_ptr() as *mut GLchar);
+                gl::DeleteShader(id);
+            }
 
             return Err(error.to_string_lossy().into_owned());
         }
@@ -69,7 +75,7 @@ impl Program {
         }
 
         let mut success: GLint = 1;
-        unsafe { gl::GetProgramiv(id, gl::COMPILE_STATUS, &mut success) };
+        unsafe { gl::GetProgramiv(id, gl::LINK_STATUS, &mut success) };
 
         if success == 0 {
             let mut len: GLint = 0;
@@ -79,7 +85,10 @@ impl Program {
 
             let error = create_whitespace_cstring_with_len(len as usize);
 
-            unsafe { gl::GetProgramInfoLog(id, len, null_mut(), error.as_ptr() as *mut GLchar) };
+            unsafe {
+                gl::GetProgramInfoLog(id, len, null_mut(), error.as_ptr() as *mut GLchar);
+                gl::DeleteProgram(id);
+            }
 
             return Err(error.to_string_lossy().into_owned());
         }
@@ -108,20 +117,22 @@ impl Drop for Program {
 }
 
 fn create_whitespace_cstring_with_len(len: usize) -> CString {
-    let mut buffer: Vec<u8> = Vec::with_capacity(len + 1);
-    buffer.extend([b' '].iter().cycle().take(len));
+    let mut buffer: Vec<u8> = vec![b' '; len];
+    buffer.push(0);
     unsafe { CString::from_vec_unchecked(buffer) }
 }
 
-pub fn create_program() -> Result<Program, &'static str> {
-    let vert_src = std::fs::read("./src/vert.glsl").unwrap();
-    let frag_src = std::fs::read("./src/frag.glsl").unwrap();
-    let vert_shader =
-        Shader::from_source(&CString::new(vert_src).unwrap(), gl::VERTEX_SHADER).unwrap();
-    let frag_shader =
-        Shader::from_source(&CString::new(frag_src).unwrap(), gl::FRAGMENT_SHADER).unwrap();
+pub fn create_program() -> Result<Program, Box<dyn Error>> {
+    let vert_src = std::fs::read("./src/vert.glsl")?;
+    let frag_src = std::fs::read("./src/frag.glsl")?;
 
-    let shader_program = Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
+    let vert_c = CString::new(vert_src)?;
+    let frag_c = CString::new(frag_src)?;
+
+    let vert_shader = Shader::from_source(&vert_c, gl::VERTEX_SHADER)?;
+    let frag_shader = Shader::from_source(&frag_c, gl::FRAGMENT_SHADER)?;
+
+    let shader_program = Program::from_shaders(&[vert_shader, frag_shader])?;
 
     Ok(shader_program)
 }
@@ -149,7 +160,7 @@ impl Vbo {
         unsafe {
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                (vertices.len() * size_of::<f32>()) as GLsizeiptr,
+                size_of_val(vertices) as GLsizeiptr,
                 vertices.as_ptr() as *const GLvoid,
                 gl::DYNAMIC_DRAW,
             );
@@ -209,7 +220,7 @@ impl Ibo {
         unsafe {
             gl::BufferData(
                 gl::ELEMENT_ARRAY_BUFFER,
-                (indices.len() * size_of::<f32>()) as GLsizeiptr,
+                std::mem::size_of_val(indices) as GLsizeiptr,
                 indices.as_ptr() as *const GLvoid,
                 gl::DYNAMIC_DRAW,
             );
@@ -307,5 +318,27 @@ impl Drop for Vao {
     fn drop(&mut self) {
         self.unbind();
         self.delete();
+    }
+}
+
+/// Uniform Object
+pub struct Uniform {
+    pub id: GLint,
+}
+
+impl Uniform {
+    pub fn new(program: u32, name: &str) -> Result<Self, String> {
+        let cname = CString::new(name).expect("CString::new failed in Uniform Creation");
+        let location: GLint = unsafe { gl::GetUniformLocation(program, cname.as_ptr()) };
+        if location == -1 {
+            return Err(format!("Couldn't get Uniform location for {}", name));
+        }
+        Ok(Uniform { id: location })
+    }
+
+    pub fn set_vec2f(&self, value: (f32, f32)) {
+        unsafe {
+            gl::Uniform2f(self.id, value.0, value.1);
+        }
     }
 }
