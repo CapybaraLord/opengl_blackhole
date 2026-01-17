@@ -6,22 +6,23 @@ pub mod objects;
 mod winsdl;
 
 fn main() {
-    let mut winsdl = Winsdl::new(800, 600).unwrap();
+    let mut winsdl = Winsdl::new(800, 800).unwrap();
     unsafe {
-        gl::Viewport(0, 0, 800, 600);
+        gl::Viewport(0, 0, 800, 800);
     }
 
-    let program = objects::create_program().unwrap();
+    let mut program = objects::create_program().unwrap();
     program.set();
 
     #[rustfmt::skip]
     let vertices = vec![
         -0.5, -0.5,
         0.5, -0.5,
-        0.0, 0.5,
+        0.5, 0.5,
+        -0.5, 0.5,
     ];
 
-    let indices = vec![0, 1, 2];
+    let indices = vec![0, 3, 1, 1, 3, 2];
 
     let vbo = objects::Vbo::generate();
     vbo.set(&vertices);
@@ -35,10 +36,19 @@ fn main() {
     'running: loop {
         for event in winsdl.event_pump.poll_iter() {
             match event {
-                Event::KeyDown {
-                    scancode: Some(Scancode::Escape),
-                    ..
-                } => break 'running,
+                Event::KeyDown { scancode, .. } => {
+                    if let Some(scancode) = scancode {
+                        match scancode {
+                            Scancode::R => {
+                                drop(program);
+                                program = objects::create_program().unwrap();
+                                program.set();
+                            }
+                            Scancode::Escape => break 'running,
+                            _ => {}
+                        }
+                    }
+                }
                 Event::Quit { .. } => break 'running,
                 _ => {}
             }

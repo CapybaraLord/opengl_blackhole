@@ -114,16 +114,12 @@ fn create_whitespace_cstring_with_len(len: usize) -> CString {
 }
 
 pub fn create_program() -> Result<Program, &'static str> {
-    let vert_shader = Shader::from_source(
-        &CString::new(include_str!("vert.glsl")).unwrap(),
-        gl::VERTEX_SHADER,
-    )
-    .unwrap();
-    let frag_shader = Shader::from_source(
-        &CString::new(include_str!("frag.glsl")).unwrap(),
-        gl::FRAGMENT_SHADER,
-    )
-    .unwrap();
+    let vert_src = std::fs::read("./src/vert.glsl").unwrap();
+    let frag_src = std::fs::read("./src/frag.glsl").unwrap();
+    let vert_shader =
+        Shader::from_source(&CString::new(vert_src).unwrap(), gl::VERTEX_SHADER).unwrap();
+    let frag_shader =
+        Shader::from_source(&CString::new(frag_src).unwrap(), gl::FRAGMENT_SHADER).unwrap();
 
     let shader_program = Program::from_shaders(&[vert_shader, frag_shader]).unwrap();
 
