@@ -3,7 +3,10 @@ use sdl2::{
     keyboard::Scancode,
 };
 
-use crate::{objects::Uniform, winsdl::Winsdl};
+use crate::{
+    objects::{Uniform, Vertex},
+    winsdl::Winsdl,
+};
 
 pub mod objects;
 mod winsdl;
@@ -20,16 +23,17 @@ fn main() {
     // Shader Uniform Locations
     let u_resolution = Uniform::new(program.id(), "u_resolution").unwrap();
     u_resolution.set_vec2f((800.0, 800.0));
+    let u_time = Uniform::new(program.id(), "u_time").unwrap();
+    u_time.set_1f(0.0);
 
     #[rustfmt::skip]
     let vertices = vec![
-        -0.5, -0.5,
-        0.5, -0.5,
-        0.5, 0.5,
-        -0.5, 0.5,
+        Vertex::new((-1.0, -1.0,), (1.0,0.0,0.0)),
+        Vertex::new((1.0, -1.0,), (0.0,1.0,0.0)),
+        Vertex::new((0.0, 1.0,), (0.0,0.0,1.0)),
     ];
 
-    let indices = vec![0, 3, 1, 1, 3, 2];
+    let indices = vec![0, 1, 2];
 
     let vbo = objects::Vbo::generate();
     vbo.set(&vertices);
@@ -40,6 +44,7 @@ fn main() {
     let ibo = objects::Ibo::generate();
     ibo.set(&indices);
 
+    let mut time = 0.0;
     'running: loop {
         for event in winsdl.event_pump.poll_iter() {
             match event {
@@ -68,9 +73,13 @@ fn main() {
             }
         }
 
+        // Update Loop
+        time += 0.01;
+        u_time.set_1f(time);
+
         // Render Loop
         unsafe {
-            gl::ClearColor(0.9, 0.0, 0.0, 1.0);
+            gl::ClearColor(0.1, 0.1, 0.1, 1.0);
             gl::Clear(gl::COLOR_BUFFER_BIT);
 
             gl::DrawElements(

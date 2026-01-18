@@ -1,8 +1,7 @@
 use std::{
     error::Error,
     ffi::{CStr, CString},
-    fmt::format,
-    mem::size_of_val,
+    mem::{offset_of, size_of, size_of_val},
     ptr::{null, null_mut},
 };
 
@@ -137,6 +136,51 @@ pub fn create_program() -> Result<Program, Box<dyn Error>> {
     Ok(shader_program)
 }
 
+#[repr(C)]
+#[derive(Clone, Copy, Debug)]
+pub struct Vertex {
+    pub position: (f32, f32),
+    pub color: (f32, f32, f32),
+}
+impl Vertex {
+    pub fn new(pos: (f32, f32), color: (f32, f32, f32)) -> Self {
+        Self {
+            position: pos,
+            color,
+        }
+    }
+
+    /// This sets up the vertex attributes in memory that get sent to the shader
+    pub fn desc() {
+        let stride = size_of::<Self>();
+
+        unsafe {
+            gl::EnableVertexAttribArray(0);
+            // Vertex Position
+            gl::VertexAttribPointer(
+                0,               // Index of the generic Vertex Attribute (layout (location=0)
+                2,               // Number of components per Attribute
+                gl::FLOAT,       // Data type
+                gl::FALSE,       // Normalized (int-to-float conversion)
+                stride as GLint, // Stride (byte offset between
+                // consecutive attributes)
+                offset_of!(Vertex, position) as *const GLvoid, // Offset of the First/Previous component
+            );
+
+            gl::EnableVertexAttribArray(1);
+            // Vertex Color
+            gl::VertexAttribPointer(
+                1,
+                3,
+                gl::FLOAT,
+                gl::FALSE,
+                stride as GLint,
+                offset_of!(Vertex, color) as *const GLvoid,
+            );
+        }
+    }
+}
+
 /// Vertex Buffer Object
 pub struct Vbo {
     pub id: GLuint,
@@ -151,16 +195,16 @@ impl Vbo {
         Vbo { id }
     }
 
-    pub fn set(&self, data: &[f32]) {
+    pub fn set(&self, data: &[Vertex]) {
         self.bind();
         self.data(data);
     }
 
-    fn data(&self, vertices: &[f32]) {
+    fn data(&self, vertices: &[Vertex]) {
         unsafe {
             gl::BufferData(
                 gl::ARRAY_BUFFER,
-                size_of_val(vertices) as GLsizeiptr,
+                std::mem::size_of_val(vertices) as GLsizeiptr,
                 vertices.as_ptr() as *const GLvoid,
                 gl::DYNAMIC_DRAW,
             );
@@ -273,22 +317,7 @@ impl Vao {
 
     pub fn set(&self) {
         self.bind();
-        self.setup();
-    }
-
-    /// This sets up the vertex attributes in memory that get sent to the shader
-    fn setup(&self) {
-        unsafe {
-            gl::EnableVertexAttribArray(0);
-            gl::VertexAttribPointer(
-                0,
-                2,
-                gl::FLOAT,
-                gl::FALSE,
-                (2 * std::mem::size_of::<f32>()) as GLint,
-                null(),
-            );
-        }
+        Vertex::desc();
     }
 
     fn bind(&self) {
@@ -334,6 +363,12 @@ impl Uniform {
             return Err(format!("Couldn't get Uniform location for {}", name));
         }
         Ok(Uniform { id: location })
+    }
+
+    pub fn set_1f(&self, value: f32) {
+        unsafe {
+            gl::Uniform1f(self.id, value);
+        }
     }
 
     pub fn set_vec2f(&self, value: (f32, f32)) {

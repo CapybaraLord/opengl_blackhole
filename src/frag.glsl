@@ -1,5 +1,10 @@
 #version 330 core
 
+uniform float u_time;
+
+in vec3 vColor;
+
 void main() {
-  gl_FragColor = vec4(0.1, 0.1, 0.1, 1.0);
+  float time = sin(u_time);
+  gl_FragColor = vec4(vColor, 1.0);
 }
