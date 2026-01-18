@@ -141,12 +141,14 @@ pub fn create_program() -> Result<Program, Box<dyn Error>> {
 pub struct Vertex {
     pub position: (f32, f32),
     pub color: (f32, f32, f32),
+    pub tex_coord: (f32, f32),
 }
 impl Vertex {
-    pub fn new(pos: (f32, f32), color: (f32, f32, f32)) -> Self {
+    pub fn new(pos: (f32, f32), color: (f32, f32, f32), tex_coord: (f32, f32)) -> Self {
         Self {
             position: pos,
             color,
+            tex_coord,
         }
     }
 
@@ -155,8 +157,8 @@ impl Vertex {
         let stride = size_of::<Self>();
 
         unsafe {
-            gl::EnableVertexAttribArray(0);
             // Vertex Position
+            gl::EnableVertexAttribArray(0);
             gl::VertexAttribPointer(
                 0,               // Index of the generic Vertex Attribute (layout (location=0)
                 2,               // Number of components per Attribute
@@ -167,8 +169,8 @@ impl Vertex {
                 offset_of!(Vertex, position) as *const GLvoid, // Offset of the First/Previous component
             );
 
-            gl::EnableVertexAttribArray(1);
             // Vertex Color
+            gl::EnableVertexAttribArray(1);
             gl::VertexAttribPointer(
                 1,
                 3,
@@ -176,6 +178,17 @@ impl Vertex {
                 gl::FALSE,
                 stride as GLint,
                 offset_of!(Vertex, color) as *const GLvoid,
+            );
+
+            // TexCoord Coords
+            gl::EnableVertexAttribArray(2);
+            gl::VertexAttribPointer(
+                2,
+                2,
+                gl::FLOAT,
+                gl::FALSE,
+                stride as GLint,
+                offset_of!(Vertex, tex_coord) as *const GLvoid,
             );
         }
     }

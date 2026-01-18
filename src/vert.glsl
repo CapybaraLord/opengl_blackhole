@@ -2,13 +2,16 @@
 
 layout(location = 0) in vec2 Position;
 layout(location = 1) in vec3 Color;
+layout(location = 2) in vec2 Tex_Coord;
 
 uniform vec2 u_resolution;
 
 out vec3 vColor;
+out vec2 vUV;
 
 void main() {
   vColor = Color;
+  vUV = Tex_Coord;
 
   vec2 uv = Position;
 

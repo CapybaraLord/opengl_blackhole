@@ -23,17 +23,16 @@ fn main() {
     // Shader Uniform Locations
     let u_resolution = Uniform::new(program.id(), "u_resolution").unwrap();
     u_resolution.set_vec2f((800.0, 800.0));
-    let u_time = Uniform::new(program.id(), "u_time").unwrap();
-    u_time.set_1f(0.0);
 
     #[rustfmt::skip]
     let vertices = vec![
-        Vertex::new((-1.0, -1.0,), (1.0,0.0,0.0)),
-        Vertex::new((1.0, -1.0,), (0.0,1.0,0.0)),
-        Vertex::new((0.0, 1.0,), (0.0,0.0,1.0)),
+        Vertex::new((-1.0, -1.0,), (1.0,0.0,0.0), (0.0, 0.0)),
+        Vertex::new((1.0, -1.0,), (0.0,1.0,0.0), (1.0, 0.0)),
+        Vertex::new((1.0, 1.0,), (0.0,0.0,1.0), (1.0, 1.0)),
+        Vertex::new((-1.0, 1.0,), (1.0,0.0,1.0), (0.0, 1.0)),
     ];
 
-    let indices = vec![0, 1, 2];
+    let indices = vec![0, 3, 1, 2, 3, 1];
 
     let vbo = objects::Vbo::generate();
     vbo.set(&vertices);
@@ -75,7 +74,6 @@ fn main() {
 
         // Update Loop
         time += 0.01;
-        u_time.set_1f(time);
 
         // Render Loop
         unsafe {
